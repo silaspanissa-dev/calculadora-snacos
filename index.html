@@ -21,7 +21,6 @@
     .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .pill { background:#f1f3f6; padding: 10px; border-radius: 12px; }
     .small { font-size: 12px; color:#444; }
-    .right { text-align:right; }
   </style>
 </head>
 <body>
@@ -53,14 +52,17 @@
 
     <div class="row">
       <div>
-        <label>Frete (R$/ton)</label>
-        <input id="frete" type="number" step="0.01" value="250">
-      </div>
-      <div>
         <label>Perdas (%)</label>
         <input id="perdas" type="number" step="0.01" value="0">
       </div>
+      <div>
+        <label>Frete (R$/ton)</label>
+        <input id="frete" type="number" step="0.01" value="250">
+      </div>
     </div>
+
+    <label>Beneficiamento (R$/ton)</label>
+    <input id="benef" type="number" step="0.01" value="0">
 
     <div class="row">
       <div>
@@ -90,7 +92,7 @@
         <input id="ipi" type="number" step="0.01" value="3.25">
       </div>
       <div>
-        <label>ICMS benefício (%) (fixo)</label>
+        <label>ICMS benefício (%)</label>
         <input id="icmsBen" type="number" step="0.01" value="3.00">
       </div>
     </div>
@@ -131,45 +133,49 @@
   function val(id){ return parseFloat(document.getElementById(id).value || "0"); }
 
   function calcular(){
-    const C = val('custo');           // R$/ton s/IPI
-    const V = Math.max(val('vol'), 0.000001); // ton
-    const m = val('margem')/100;      // margem líquida desejada (sobre PV com IPI)
-    const perdas = val('perdas')/100; // % perdas
-    const frete = val('frete');       // R$/ton
+    const C = val('custo');                 // R$/ton s/IPI
+    const V = Math.max(val('vol'), 0.000001);
+    const m = val('margem')/100;            // margem líquida (sobre PV com IPI)
+    const perdas = val('perdas')/100;       // % perdas
+    const frete = val('frete');             // R$/ton
+    const benef = val('benef');             // R$/ton (novo)
     const parcelas = Math.max(Math.round(val('parcelas')), 0);
-    const custoParcela = val('custoParcela'); // R$
-    const comCompr = val('comCompr')/100;     // % s/IPI
-    const comVend  = val('comVend')/100;      // % s/IPI
-    const i = val('ipi')/100;         // IPI
-    const icmsBen = val('icmsBen')/100; // ICMS benefício 3% sobre PV com IPI
+    const custoParcela = val('custoParcela');
+    const comCompr = val('comCompr')/100;   // % s/IPI
+    const comVend  = val('comVend')/100;    // % s/IPI
+    const i = val('ipi')/100;               // IPI
+    const icmsBen = val('icmsBen')/100;     // 3% sobre PV com IPI
 
-    // Ajuste por perdas: custo por ton vendida aumenta
     const adj = 1 / (1 - perdas);
 
-    // Custos fixos por ton vendida (já ajustado por perdas)
+    // custo boleto por ton vendida
     const boletoPorTon = (custoParcela * parcelas) / (V * (1 - perdas));
-    const baseSemIPI = (C + frete) * adj;
+
+    // base s/IPI ajustada por perdas (agora inclui beneficiamento)
+    const baseSemIPI = (C + frete + benef) * adj;
+
+    // IPI compra ajustado por perdas
     const ipiCompra = (C * i) * adj;
 
-    // Denominador (isola PV) mantendo sua lógica:
-    // lucro = PV*(1+i) - [ baseSemIPI + ipiCompra + PV*(comissões) + PV*(1+i)*icmsBen + boletoPorTon ]
-    // margem líquida m = lucro / (PV*(1+i))
-    // => PV = (baseSemIPI + ipiCompra + boletoPorTon) / ( (1+i)*(1-m-icmsBen) - (comissões) )
     const comissoes = comCompr + comVend;
+
+    // Isola PV:
+    // PV = (baseSemIPI + ipiCompra + boletoPorTon) / ( (1+i)*(1-m-icmsBen) - comissoes )
     const denom = (1+i) * (1 - m - icmsBen) - comissoes;
 
+    const debugEl = document.getElementById('debug');
     if (denom <= 0){
-      document.getElementById('debug').innerText =
-        "Atenção: combinações de margem + impostos + comissões deixaram o cálculo impossível (denominador <= 0). Reduza a margem ou verifique parâmetros.";
+      debugEl.innerText =
+        "Atenção: a combinação de margem + ICMS + comissões deixou o cálculo impossível (denominador <= 0). Reduza a margem ou revise parâmetros.";
       return;
     } else {
-      document.getElementById('debug').innerText = "";
+      debugEl.innerText = "";
     }
 
-    const PV = (baseSemIPI + ipiCompra + boletoPorTon) / denom; // preço s/IPI
+    const PV = (baseSemIPI + ipiCompra + boletoPorTon) / denom;
     const PVc = PV * (1+i);
 
-    // Recalcula lucro com a própria equação (conferência)
+    // conferência
     const custoTotal = baseSemIPI + ipiCompra + boletoPorTon + (PV * comissoes) + (PVc * icmsBen);
     const lucro = PVc - custoTotal;
     const mConf = lucro / PVc;
