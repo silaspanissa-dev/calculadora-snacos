@@ -14,13 +14,18 @@
     input { width: 100%; padding: 12px; border: 1px solid #d7dbe0; border-radius: 12px; font-size: 16px; }
     .row { display:flex; gap:10px; }
     .row > div { flex:1; }
-    button { width:100%; padding: 12px; border:0; border-radius: 12px; font-size: 16px; font-weight:600; }
+    button { width:100%; padding: 12px; border:0; border-radius: 12px; font-size: 16px; font-weight:700; }
     .btn { background:#111; color:#fff; }
+    .btn2 { background:#1f7a3a; color:#fff; } /* estilo “WhatsApp” sem citar cor exata */
     .muted { color:#666; font-size: 12px; line-height: 1.4; }
     .res { font-size: 22px; font-weight: 800; }
     .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .pill { background:#f1f3f6; padding: 10px; border-radius: 12px; }
     .small { font-size: 12px; color:#444; }
+    .checkrow { display:flex; gap:10px; align-items:center; margin-top:10px; }
+    .checkrow input { width:auto; }
+    .btnrow { display:flex; gap:10px; margin-top:12px; }
+    .btnrow button { flex: 1; }
   </style>
 </head>
 <body>
@@ -28,8 +33,10 @@
   <div class="card">
     <h1>Calculadora de Preço (SN Aços)</h1>
     <div class="muted">
-      Fixos: ICMS benefício 3% (sobre NF com IPI), IPI padrão 3,25%, custo parcela R$ 6,90.
-      Comissões incidem sobre valor s/IPI. Perdas aumentam custo por ton vendida.
+      Regras: ICMS benefício 3% (sobre a base final da venda), parcela R$ 6,90.
+      Comissões sobre valor s/IPI. Perdas aumentam custo por ton vendida.
+      <br><br>
+      <b>Margem exibida</b> = margem real (igual planilha): <b>Lucro ÷ Preço de venda (base final)</b>.
     </div>
   </div>
 
@@ -37,16 +44,16 @@
     <h2>Entradas</h2>
 
     <label>Custo do material s/IPI (R$/ton)</label>
-    <input id="custo" type="number" step="0.01" value="5686">
+    <input id="custo" type="number" step="0.01" value="5000">
 
     <div class="row">
       <div>
         <label>Volume (ton)</label>
-        <input id="vol" type="number" step="0.001" value="10">
+        <input id="vol" type="number" step="0.001" value="5">
       </div>
       <div>
-        <label>Margem líquida desejada (%)</label>
-        <input id="margem" type="number" step="0.01" value="10.86">
+        <label>Margem alvo (%)</label>
+        <input id="margem" type="number" step="0.01" value="15.00">
       </div>
     </div>
 
@@ -56,13 +63,13 @@
         <input id="perdas" type="number" step="0.01" value="0">
       </div>
       <div>
-        <label>Frete (R$/ton)</label>
-        <input id="frete" type="number" step="0.01" value="250">
+        <label>Frete de venda (R$/ton)</label>
+        <input id="freteVenda" type="number" step="0.01" value="250">
       </div>
     </div>
 
     <label>Beneficiamento (R$/ton)</label>
-    <input id="benef" type="number" step="0.01" value="0">
+    <input id="benef" type="number" step="0.01" value="110">
 
     <div class="row">
       <div>
@@ -88,18 +95,37 @@
 
     <div class="row">
       <div>
-        <label>IPI (%)</label>
-        <input id="ipi" type="number" step="0.01" value="3.25">
+        <label>IPI COMPRA (%)</label>
+        <input id="ipiCompra" type="number" step="0.01" value="3.25">
       </div>
+      <div>
+        <label>IPI VENDA (%)</label>
+        <input id="ipiVenda" type="number" step="0.01" value="3.25">
+      </div>
+    </div>
+
+    <div class="checkrow">
+      <input id="semNf" type="checkbox" />
+      <label for="semNf" style="margin:0;">Venda sem NF (não tem IPI na venda)</label>
+    </div>
+
+    <div class="row">
       <div>
         <label>ICMS benefício (%)</label>
         <input id="icmsBen" type="number" step="0.01" value="3.00">
       </div>
+      <div>
+        <label>&nbsp;</label>
+        <div class="muted">ICMS incide sobre a base final de venda (com IPI se houver).</div>
+      </div>
     </div>
 
-    <div style="margin-top:12px">
+    <div class="btnrow">
       <button class="btn" id="calc">Calcular preço</button>
+      <button class="btn2" id="copy">Copiar resumo</button>
     </div>
+
+    <div class="muted" id="copyMsg" style="margin-top:10px;"></div>
   </div>
 
   <div class="card">
@@ -109,84 +135,180 @@
         <div class="small">Preço de venda s/IPI (R$/ton)</div>
         <div class="res" id="pvSem">—</div>
       </div>
+
       <div class="pill">
-        <div class="small">Preço de venda c/IPI (R$/ton)</div>
-        <div class="res" id="pvCom">—</div>
+        <div class="small">Preço de venda (base final) (R$/ton)</div>
+        <div class="res" id="pvBase">—</div>
       </div>
+
       <div class="pill">
         <div class="small">Lucro (R$/ton)</div>
-        <div class="res" id="lucro">—</div>
+        <div class="res" id="lucroTon">—</div>
       </div>
+
       <div class="pill">
-        <div class="small">Margem conferida (%)</div>
-        <div class="res" id="mConf">—</div>
+        <div class="small">Lucro total (R$)</div>
+        <div class="res" id="lucroTotal">—</div>
+      </div>
+
+      <div class="pill">
+        <div class="small">Margem real (%)</div>
+        <div class="res" id="mReal">—</div>
+      </div>
+
+      <div class="pill">
+        <div class="small">Receita total (base final) (R$)</div>
+        <div class="res" id="receitaTotal">—</div>
       </div>
     </div>
+
     <div class="muted" id="debug" style="margin-top:10px"></div>
   </div>
 </div>
 
 <script>
   const fmtBRL = (n) => n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-  const fmtNum = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtPct = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+  const fmtNum = (n, d=3) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
   function val(id){ return parseFloat(document.getElementById(id).value || "0"); }
+  function byId(id){ return document.getElementById(id); }
 
   function calcular(){
     const C = val('custo');                 // R$/ton s/IPI
     const V = Math.max(val('vol'), 0.000001);
-    const m = val('margem')/100;            // margem líquida (sobre PV com IPI)
-    const perdas = val('perdas')/100;       // % perdas
-    const frete = val('frete');             // R$/ton
-    const benef = val('benef');             // R$/ton (novo)
+    const mAlvo = val('margem')/100;        // margem alvo (para sugerir o PV)
+    const perdas = val('perdas')/100;
+    const freteVenda = val('freteVenda');
+    const benef = val('benef');
     const parcelas = Math.max(Math.round(val('parcelas')), 0);
     const custoParcela = val('custoParcela');
-    const comCompr = val('comCompr')/100;   // % s/IPI
-    const comVend  = val('comVend')/100;    // % s/IPI
-    const i = val('ipi')/100;               // IPI
-    const icmsBen = val('icmsBen')/100;     // 3% sobre PV com IPI
+    const comCompr = val('comCompr')/100;
+    const comVend  = val('comVend')/100;
+    const ipiCompra = val('ipiCompra')/100;
 
-    const adj = 1 / (1 - perdas);
+    const semNf = byId('semNf').checked;
+    const ipiVenda = semNf ? 0 : (val('ipiVenda')/100);
 
-    // custo boleto por ton vendida
+    const icmsBen = val('icmsBen')/100;
+
+    const adj = 1 / (1 - perdas); // ajuste por perdas
+
     const boletoPorTon = (custoParcela * parcelas) / (V * (1 - perdas));
 
-    // base s/IPI ajustada por perdas (agora inclui beneficiamento)
-    const baseSemIPI = (C + frete + benef) * adj;
+    // Custos fixos s/IPI por ton vendida (igual planilha)
+    const baseSemIPI = (C + freteVenda + benef) * adj;
 
-    // IPI compra ajustado por perdas
-    const ipiCompra = (C * i) * adj;
+    // IPI compra entra no custo, sempre (ajustado por perdas)
+    const ipiCompraR = (C * ipiCompra) * adj;
 
     const comissoes = comCompr + comVend;
 
-    // Isola PV:
-    // PV = (baseSemIPI + ipiCompra + boletoPorTon) / ( (1+i)*(1-m-icmsBen) - comissoes )
-    const denom = (1+i) * (1 - m - icmsBen) - comissoes;
+    // Sugerir PV (s/IPI) pela margem alvo, mas exibir margem real depois
+    const denom = (1 + ipiVenda) * (1 - mAlvo - icmsBen) - comissoes;
 
-    const debugEl = document.getElementById('debug');
+    const debugEl = byId('debug');
     if (denom <= 0){
       debugEl.innerText =
-        "Atenção: a combinação de margem + ICMS + comissões deixou o cálculo impossível (denominador <= 0). Reduza a margem ou revise parâmetros.";
-      return;
+        "Atenção: a combinação de margem alvo + ICMS + comissões deixou o cálculo impossível (denominador <= 0). Reduza a margem alvo ou revise parâmetros.";
+      return null;
     } else {
-      debugEl.innerText = "";
+      debugEl.innerText = semNf
+        ? "Modo: Venda sem NF → IPI na venda = 0% (custo mantém IPI compra)."
+        : "";
     }
 
-    const PV = (baseSemIPI + ipiCompra + boletoPorTon) / denom;
-    const PVc = PV * (1+i);
+    const PV = (baseSemIPI + ipiCompraR + boletoPorTon) / denom; // venda s/IPI
+    const baseFinal = PV * (1 + ipiVenda);                       // venda base final (com IPI se houver)
 
-    // conferência
-    const custoTotal = baseSemIPI + ipiCompra + boletoPorTon + (PV * comissoes) + (PVc * icmsBen);
-    const lucro = PVc - custoTotal;
-    const mConf = lucro / PVc;
+    // Lucro REAL e margem REAL (igual planilha)
+    const custoTotal = baseSemIPI + ipiCompraR + boletoPorTon + (PV * comissoes) + (baseFinal * icmsBen);
+    const lucroTon = baseFinal - custoTotal;
+    const margemReal = lucroTon / baseFinal;
 
-    document.getElementById('pvSem').innerText = fmtBRL(PV);
-    document.getElementById('pvCom').innerText = fmtBRL(PVc);
-    document.getElementById('lucro').innerText = fmtBRL(lucro);
-    document.getElementById('mConf').innerText = fmtNum(mConf*100) + "%";
+    const lucroTotal = lucroTon * V;
+    const receitaTotal = baseFinal * V;
+
+    byId('pvSem').innerText = fmtBRL(PV);
+    byId('pvBase').innerText = fmtBRL(baseFinal);
+    byId('lucroTon').innerText = fmtBRL(lucroTon);
+    byId('lucroTotal').innerText = fmtBRL(lucroTotal);
+    byId('mReal').innerText = fmtPct(margemReal * 100);
+    byId('receitaTotal').innerText = fmtBRL(receitaTotal);
+
+    return {
+      C, V, mAlvo, perdas, freteVenda, benef, parcelas, custoParcela,
+      comCompr, comVend, ipiCompra, ipiVenda, icmsBen,
+      PV, baseFinal, lucroTon, lucroTotal, margemReal, receitaTotal, semNf
+    };
   }
 
-  document.getElementById('calc').addEventListener('click', calcular);
+  async function copiarResumo(){
+    const msgEl = byId('copyMsg');
+    msgEl.innerText = "";
+    const r = calcular();
+    if (!r) return;
+
+    const perdasPct = r.perdas * 100;
+    const comComprPct = r.comCompr * 100;
+    const comVendPct = r.comVend * 100;
+    const ipiCompraPct = r.ipiCompra * 100;
+    const ipiVendaPct = r.ipiVenda * 100;
+    const icmsPct = r.icmsBen * 100;
+    const margemAlvoPct = r.mAlvo * 100;
+    const margemRealPct = r.margemReal * 100;
+
+    const texto =
+`SN Aços • Cálculo de Preço
+${r.semNf ? "Modo: VENDA SEM NF (IPI na venda = 0%)" : "Modo: Venda com NF"}
+
+Entradas:
+• Volume: ${fmtNum(r.V, 3)} ton
+• Custo material s/IPI: ${fmtBRL(r.C)}/ton
+• Frete venda: ${fmtBRL(r.freteVenda)}/ton
+• Beneficiamento: ${fmtBRL(r.benef)}/ton
+• Perdas: ${perdasPct.toFixed(2).replace('.', ',')}%
+• Parcelas: ${r.parcelas} (R$ ${r.custoParcela.toFixed(2).replace('.', ',')} cada)
+• Comissão comprador: ${comComprPct.toFixed(2).replace('.', ',')}%
+• Comissão venda: ${comVendPct.toFixed(2).replace('.', ',')}%
+• IPI compra: ${ipiCompraPct.toFixed(2).replace('.', ',')}%
+• IPI venda: ${ipiVendaPct.toFixed(2).replace('.', ',')}%
+• ICMS benefício: ${icmsPct.toFixed(2).replace('.', ',')}%
+• Margem alvo: ${margemAlvoPct.toFixed(2).replace('.', ',')}%
+
+Resultados:
+• PV s/IPI: ${fmtBRL(r.PV)}/ton
+• PV (base final): ${fmtBRL(r.baseFinal)}/ton
+• Margem real: ${margemRealPct.toFixed(2).replace('.', ',')}%
+• Lucro: ${fmtBRL(r.lucroTon)}/ton
+• Lucro total: ${fmtBRL(r.lucroTotal)}
+• Receita total (base final): ${fmtBRL(r.receitaTotal)}
+`;
+
+    try{
+      await navigator.clipboard.writeText(texto);
+      msgEl.innerText = "✅ Resumo copiado. Agora é só colar no WhatsApp.";
+    } catch(e){
+      // fallback simples (alguns navegadores travam clipboard)
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, 999999);
+      try{
+        document.execCommand("copy");
+        msgEl.innerText = "✅ Resumo copiado. Agora é só colar no WhatsApp.";
+      } catch(err){
+        msgEl.innerText = "Não consegui copiar automaticamente. Se quiser, eu adapto para abrir um pop-up com o texto para você copiar manualmente.";
+      }
+      document.body.removeChild(ta);
+    }
+  }
+
+  byId('calc').addEventListener('click', calcular);
+  byId('copy').addEventListener('click', copiarResumo);
+  byId('semNf').addEventListener('change', calcular);
+
   calcular();
 </script>
 </body>
