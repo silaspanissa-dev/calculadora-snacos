@@ -11,12 +11,13 @@
     h1 { font-size: 18px; margin: 0 0 8px; }
     h2 { font-size: 14px; margin: 0 0 10px; color:#444; }
     label { display:block; font-size: 12px; color:#444; margin: 10px 0 6px; }
-    input { width: 100%; padding: 12px; border: 1px solid #d7dbe0; border-radius: 12px; font-size: 16px; }
+    input { width: 100%; padding: 12px; border: 1px solid #d7dbe0; border-radius: 12px; font-size: 16px; box-sizing: border-box; }
     .row { display:flex; gap:10px; }
     .row > div { flex:1; }
-    button { width:100%; padding: 12px; border:0; border-radius: 12px; font-size: 16px; font-weight:700; }
+    button { width:100%; padding: 12px; border:0; border-radius: 12px; font-size: 16px; font-weight:700; cursor:pointer; }
     .btn { background:#111; color:#fff; }
-    .btn2 { background:#1f7a3a; color:#fff; } /* estilo “WhatsApp” sem citar cor exata */
+    .btn2 { background:#1f7a3a; color:#fff; }
+    .btn3 { background:#0b5bd3; color:#fff; }
     .muted { color:#666; font-size: 12px; line-height: 1.4; }
     .res { font-size: 22px; font-weight: 800; }
     .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
@@ -26,6 +27,16 @@
     .checkrow input { width:auto; }
     .btnrow { display:flex; gap:10px; margin-top:12px; }
     .btnrow button { flex: 1; }
+    .warn { color:#a32626; font-weight:600; }
+    .ok { color:#1f7a3a; font-weight:600; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    td { padding: 6px 0; border-bottom: 1px solid #eee; font-size: 12px; color:#444; }
+    td:last-child { text-align:right; }
+
+    .modebox { background:#f1f3f6; padding: 10px; border-radius: 12px; margin-top: 10px; }
+    .modegrid { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    .modegrid label { margin:0; display:flex; gap:8px; align-items:center; font-size: 12px; color:#333; }
+    .modegrid input { width:auto; }
   </style>
 </head>
 <body>
@@ -33,7 +44,7 @@
   <div class="card">
     <h1>Calculadora de Preço (SN Aços)</h1>
     <div class="muted">
-      Regras: ICMS benefício 3% (sobre a base final da venda), parcela R$ 6,90.
+      Regras: ICMS benefício % (sobre a base final da venda), parcela por boleto.
       Comissões sobre valor s/IPI. Perdas aumentam custo por ton vendida.
       <br><br>
       <b>Margem exibida</b> = margem real (igual planilha): <b>Lucro ÷ Preço de venda (base final)</b>.
@@ -44,63 +55,79 @@
     <h2>Entradas</h2>
 
     <label>Custo do material s/IPI (R$/ton)</label>
-    <input id="custo" type="number" step="0.01" value="5000">
+    <input id="custo" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 5000">
 
     <div class="row">
       <div>
         <label>Volume (ton)</label>
-        <input id="vol" type="number" step="0.001" value="5">
+        <input id="vol" type="number" step="0.001" inputmode="decimal" placeholder="Ex.: 5">
       </div>
       <div>
         <label>Margem alvo (%)</label>
-        <input id="margem" type="number" step="0.01" value="15.00">
+        <input id="margem" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 15">
+      </div>
+    </div>
+
+    <div class="modebox">
+      <div class="muted" style="margin-bottom:8px;">
+        <b>Modo de cálculo</b>
+      </div>
+      <div class="modegrid">
+        <label><input type="radio" name="modo" id="modoMargem" checked> Calcular PREÇO pela margem alvo</label>
+        <label><input type="radio" name="modo" id="modoPreco"> Calcular MARGEM por um preço digitado</label>
+      </div>
+
+      <div id="boxPreco" style="display:none; margin-top:10px;">
+        <label>Preço que o cliente quer pagar s/IPI (R$/ton)</label>
+        <input id="pvManual" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 6200">
+        <div class="muted">Dica: nesse modo, a margem alvo é ignorada. O app calcula a margem real em cima desse preço.</div>
       </div>
     </div>
 
     <div class="row">
       <div>
         <label>Perdas (%)</label>
-        <input id="perdas" type="number" step="0.01" value="0">
+        <input id="perdas" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 1">
       </div>
       <div>
         <label>Frete de venda (R$/ton)</label>
-        <input id="freteVenda" type="number" step="0.01" value="250">
+        <input id="freteVenda" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 250">
       </div>
     </div>
 
     <label>Beneficiamento (R$/ton)</label>
-    <input id="benef" type="number" step="0.01" value="110">
+    <input id="benef" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 110">
 
     <div class="row">
       <div>
         <label>Parcelas (nº)</label>
-        <input id="parcelas" type="number" step="1" value="3">
+        <input id="parcelas" type="number" step="1" inputmode="numeric" placeholder="Ex.: 3">
       </div>
       <div>
         <label>Custo por parcela (R$)</label>
-        <input id="custoParcela" type="number" step="0.01" value="6.90">
+        <input id="custoParcela" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 6,90">
       </div>
     </div>
 
     <div class="row">
       <div>
         <label>Comissão comprador (%)</label>
-        <input id="comCompr" type="number" step="0.01" value="0">
+        <input id="comCompr" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 0">
       </div>
       <div>
         <label>Comissão venda (%)</label>
-        <input id="comVend" type="number" step="0.01" value="1.50">
+        <input id="comVend" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 1,50">
       </div>
     </div>
 
     <div class="row">
       <div>
         <label>IPI COMPRA (%)</label>
-        <input id="ipiCompra" type="number" step="0.01" value="3.25">
+        <input id="ipiCompra" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 3,25">
       </div>
       <div>
         <label>IPI VENDA (%)</label>
-        <input id="ipiVenda" type="number" step="0.01" value="3.25">
+        <input id="ipiVenda" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 3,25">
       </div>
     </div>
 
@@ -112,7 +139,7 @@
     <div class="row">
       <div>
         <label>ICMS benefício (%)</label>
-        <input id="icmsBen" type="number" step="0.01" value="3.00">
+        <input id="icmsBen" type="number" step="0.01" inputmode="decimal" placeholder="Ex.: 3,00">
       </div>
       <div>
         <label>&nbsp;</label>
@@ -121,8 +148,9 @@
     </div>
 
     <div class="btnrow">
-      <button class="btn" id="calc">Calcular preço</button>
+      <button class="btn" id="calc">Calcular</button>
       <button class="btn2" id="copy">Copiar resumo</button>
+      <button class="btn3" id="wpp">WhatsApp</button>
     </div>
 
     <div class="muted" id="copyMsg" style="margin-top:10px;"></div>
@@ -163,6 +191,18 @@
     </div>
 
     <div class="muted" id="debug" style="margin-top:10px"></div>
+
+    <div class="muted" style="margin-top:10px;">
+      <b>Detalhamento (R$/ton)</b>
+      <table>
+        <tr><td>Base s/IPI (material + frete + benef) ajustada por perdas</td><td id="dBase">—</td></tr>
+        <tr><td>IPI compra no custo (ajustado por perdas)</td><td id="dIpiCompra">—</td></tr>
+        <tr><td>Boleto/ton (parcelas ÷ ton vendida)</td><td id="dBoleto">—</td></tr>
+        <tr><td>Comissões (sobre PV s/IPI)</td><td id="dComiss">—</td></tr>
+        <tr><td>ICMS benefício (sobre base final)</td><td id="dIcms">—</td></tr>
+        <tr><td><b>Custo total</b></td><td id="dCustoTotal"><b>—</b></td></tr>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -171,13 +211,76 @@
   const fmtPct = (n) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
   const fmtNum = (n, d=3) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-  function val(id){ return parseFloat(document.getElementById(id).value || "0"); }
   function byId(id){ return document.getElementById(id); }
 
+  // parse seguro (evita NaN quando o campo está vazio)
+  function val(id){
+    const el = byId(id);
+    const raw = (el.value ?? "").toString().trim();
+    if (raw === "") return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  const STORAGE_KEY = "snacos_calc_v2";
+
+  // padrões só para PRIMEIRO USO (se não tiver histórico salvo)
+  const DEFAULTS = {
+    custo: "5000",
+    vol: "5",
+    margem: "15",
+    pvManual: "",
+    perdas: "0",
+    freteVenda: "250",
+    benef: "110",
+    parcelas: "3",
+    custoParcela: "6.90",
+    comCompr: "0",
+    comVend: "1.50",
+    ipiCompra: "3.25",
+    ipiVenda: "3.25",
+    icmsBen: "3.00",
+    semNf: false,
+    modo: "margem" // "margem" | "preco"
+  };
+
+  function loadInputs(){
+    let data = null;
+    try{ data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch(e){}
+
+    const src = data || DEFAULTS;
+
+    const ids = ["custo","vol","margem","pvManual","perdas","freteVenda","benef","parcelas","custoParcela","comCompr","comVend","ipiCompra","ipiVenda","icmsBen"];
+    ids.forEach(id => { if (src[id] != null) byId(id).value = src[id]; });
+
+    byId("semNf").checked = !!src.semNf;
+
+    if (src.modo === "preco"){
+      byId("modoPreco").checked = true;
+      byId("modoMargem").checked = false;
+      byId("boxPreco").style.display = "block";
+    } else {
+      byId("modoMargem").checked = true;
+      byId("modoPreco").checked = false;
+      byId("boxPreco").style.display = "none";
+    }
+  }
+
+  function saveInputs(){
+    const ids = ["custo","vol","margem","pvManual","perdas","freteVenda","benef","parcelas","custoParcela","comCompr","comVend","ipiCompra","ipiVenda","icmsBen"];
+    const data = {};
+    ids.forEach(id => data[id] = byId(id).value);
+    data.semNf = byId("semNf").checked;
+    data.modo = byId("modoPreco").checked ? "preco" : "margem";
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e){}
+  }
+
   function calcular(){
+    saveInputs();
+
     const C = val('custo');                 // R$/ton s/IPI
     const V = Math.max(val('vol'), 0.000001);
-    const mAlvo = val('margem')/100;        // margem alvo (para sugerir o PV)
+
     const perdas = val('perdas')/100;
     const freteVenda = val('freteVenda');
     const benef = val('benef');
@@ -192,8 +295,16 @@
 
     const icmsBen = val('icmsBen')/100;
 
-    const adj = 1 / (1 - perdas); // ajuste por perdas
+    const modoPreco = byId("modoPreco").checked;
 
+    const debugEl = byId('debug');
+
+    if (perdas >= 1){
+      debugEl.innerHTML = `<span class="warn">Perdas não pode ser 100% ou mais.</span>`;
+      return null;
+    }
+
+    const adj = 1 / (1 - perdas);
     const boletoPorTon = (custoParcela * parcelas) / (V * (1 - perdas));
 
     // Custos fixos s/IPI por ton vendida (igual planilha)
@@ -204,25 +315,43 @@
 
     const comissoes = comCompr + comVend;
 
-    // Sugerir PV (s/IPI) pela margem alvo, mas exibir margem real depois
-    const denom = (1 + ipiVenda) * (1 - mAlvo - icmsBen) - comissoes;
+    // ======== DEFINIÇÃO DO PV (s/IPI) =========
+    let PV = 0;
+    let mAlvo = val('margem')/100;
 
-    const debugEl = byId('debug');
-    if (denom <= 0){
-      debugEl.innerText =
-        "Atenção: a combinação de margem alvo + ICMS + comissões deixou o cálculo impossível (denominador <= 0). Reduza a margem alvo ou revise parâmetros.";
-      return null;
+    if (modoPreco){
+      PV = val("pvManual"); // preço digitado pelo usuário (s/IPI)
+      if (PV <= 0){
+        debugEl.innerHTML = `<span class="warn">No modo “preço”, preencha o “Preço que o cliente quer pagar s/IPI”.</span>`;
+        return null;
+      }
+      debugEl.innerHTML = semNf
+        ? `<span class="ok">Modo:</span> Margem calculada por PREÇO (venda sem NF → IPI venda = 0%).`
+        : `<span class="ok">Modo:</span> Margem calculada por PREÇO.`;
     } else {
-      debugEl.innerText = semNf
-        ? "Modo: Venda sem NF → IPI na venda = 0% (custo mantém IPI compra)."
-        : "";
+      // modo por margem alvo (calcula PV sugerido)
+      const denom = (1 + ipiVenda) * (1 - mAlvo - icmsBen) - comissoes;
+
+      if (denom <= 0){
+        debugEl.innerHTML =
+          `<span class="warn">Atenção:</span> margem alvo + ICMS + comissões deixou o cálculo impossível (denominador ≤ 0). Reduza a margem alvo ou revise parâmetros.`;
+        return null;
+      } else {
+        debugEl.innerHTML = semNf
+          ? `<span class="ok">Modo:</span> Preço calculado pela MARGEM (venda sem NF → IPI venda = 0%).`
+          : "";
+      }
+
+      PV = (baseSemIPI + ipiCompraR + boletoPorTon) / denom; // venda s/IPI
     }
 
-    const PV = (baseSemIPI + ipiCompraR + boletoPorTon) / denom; // venda s/IPI
-    const baseFinal = PV * (1 + ipiVenda);                       // venda base final (com IPI se houver)
+    // ======== RESULTADOS =========
+    const baseFinal = PV * (1 + ipiVenda);
 
-    // Lucro REAL e margem REAL (igual planilha)
-    const custoTotal = baseSemIPI + ipiCompraR + boletoPorTon + (PV * comissoes) + (baseFinal * icmsBen);
+    const custoComissoes = PV * comissoes;
+    const custoIcms = baseFinal * icmsBen;
+
+    const custoTotal = baseSemIPI + ipiCompraR + boletoPorTon + custoComissoes + custoIcms;
     const lucroTon = baseFinal - custoTotal;
     const margemReal = lucroTon / baseFinal;
 
@@ -236,31 +365,40 @@
     byId('mReal').innerText = fmtPct(margemReal * 100);
     byId('receitaTotal').innerText = fmtBRL(receitaTotal);
 
+    byId('dBase').innerText = fmtBRL(baseSemIPI);
+    byId('dIpiCompra').innerText = fmtBRL(ipiCompraR);
+    byId('dBoleto').innerText = fmtBRL(boletoPorTon);
+    byId('dComiss').innerText = fmtBRL(custoComissoes);
+    byId('dIcms').innerText = fmtBRL(custoIcms);
+    byId('dCustoTotal').innerText = fmtBRL(custoTotal);
+
     return {
       C, V, mAlvo, perdas, freteVenda, benef, parcelas, custoParcela,
       comCompr, comVend, ipiCompra, ipiVenda, icmsBen,
-      PV, baseFinal, lucroTon, lucroTotal, margemReal, receitaTotal, semNf
+      PV, baseFinal, lucroTon, lucroTotal, margemReal, receitaTotal, semNf,
+      modo: modoPreco ? "preco" : "margem",
+      pvManual: modoPreco ? PV : 0
     };
   }
 
-  async function copiarResumo(){
-    const msgEl = byId('copyMsg');
-    msgEl.innerText = "";
-    const r = calcular();
-    if (!r) return;
-
+  function buildResumo(r){
     const perdasPct = r.perdas * 100;
     const comComprPct = r.comCompr * 100;
     const comVendPct = r.comVend * 100;
     const ipiCompraPct = r.ipiCompra * 100;
     const ipiVendaPct = r.ipiVenda * 100;
     const icmsPct = r.icmsBen * 100;
-    const margemAlvoPct = r.mAlvo * 100;
+    const margemAlvoPct = (r.mAlvo ?? 0) * 100;
     const margemRealPct = r.margemReal * 100;
 
-    const texto =
+    const modoTxt = r.modo === "preco"
+      ? `Modo: PREÇO INFORMADO (cliente paga ${fmtBRL(r.PV)}/ton s/IPI)`
+      : `Modo: MARGEM ALVO (${margemAlvoPct.toFixed(2).replace('.', ',')}%)`;
+
+    return (
 `SN Aços • Cálculo de Preço
-${r.semNf ? "Modo: VENDA SEM NF (IPI na venda = 0%)" : "Modo: Venda com NF"}
+${r.semNf ? "Venda sem NF (IPI venda = 0%)" : "Venda com NF"}
+${modoTxt}
 
 Entradas:
 • Volume: ${fmtNum(r.V, 3)} ton
@@ -274,7 +412,6 @@ Entradas:
 • IPI compra: ${ipiCompraPct.toFixed(2).replace('.', ',')}%
 • IPI venda: ${ipiVendaPct.toFixed(2).replace('.', ',')}%
 • ICMS benefício: ${icmsPct.toFixed(2).replace('.', ',')}%
-• Margem alvo: ${margemAlvoPct.toFixed(2).replace('.', ',')}%
 
 Resultados:
 • PV s/IPI: ${fmtBRL(r.PV)}/ton
@@ -283,32 +420,56 @@ Resultados:
 • Lucro: ${fmtBRL(r.lucroTon)}/ton
 • Lucro total: ${fmtBRL(r.lucroTotal)}
 • Receita total (base final): ${fmtBRL(r.receitaTotal)}
-`;
+`);
+  }
+
+  async function copiarResumo(){
+    const msgEl = byId('copyMsg');
+    msgEl.innerText = "";
+    const r = calcular();
+    if (!r) return;
+
+    const texto = buildResumo(r);
 
     try{
       await navigator.clipboard.writeText(texto);
-      msgEl.innerText = "✅ Resumo copiado. Agora é só colar no WhatsApp.";
+      msgEl.innerHTML = `<span class="ok">✅</span> Resumo copiado.`;
     } catch(e){
-      // fallback simples (alguns navegadores travam clipboard)
-      const ta = document.createElement("textarea");
-      ta.value = texto;
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, 999999);
-      try{
-        document.execCommand("copy");
-        msgEl.innerText = "✅ Resumo copiado. Agora é só colar no WhatsApp.";
-      } catch(err){
-        msgEl.innerText = "Não consegui copiar automaticamente. Se quiser, eu adapto para abrir um pop-up com o texto para você copiar manualmente.";
-      }
-      document.body.removeChild(ta);
+      msgEl.innerHTML = `<span class="warn">Não consegui copiar automaticamente.</span>`;
     }
+  }
+
+  function whatsapp(){
+    const r = calcular();
+    if (!r) return;
+    const texto = buildResumo(r);
+    const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+    window.open(url, "_blank");
+  }
+
+  function bindAutoCalc(){
+    const ids = ["custo","vol","margem","pvManual","perdas","freteVenda","benef","parcelas","custoParcela","comCompr","comVend","ipiCompra","ipiVenda","icmsBen"];
+    ids.forEach(id => {
+      byId(id).addEventListener('input', calcular);
+      byId(id).addEventListener('change', calcular);
+    });
+    byId('semNf').addEventListener('change', calcular);
+    byId('modoMargem').addEventListener('change', () => {
+      byId("boxPreco").style.display = "none";
+      calcular();
+    });
+    byId('modoPreco').addEventListener('change', () => {
+      byId("boxPreco").style.display = "block";
+      calcular();
+    });
   }
 
   byId('calc').addEventListener('click', calcular);
   byId('copy').addEventListener('click', copiarResumo);
-  byId('semNf').addEventListener('change', calcular);
+  byId('wpp').addEventListener('click', whatsapp);
 
+  loadInputs();
+  bindAutoCalc();
   calcular();
 </script>
 </body>
